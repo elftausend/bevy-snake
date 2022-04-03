@@ -39,14 +39,15 @@ fn main() {
             SystemSet::new()
                 .with_run_criteria(FixedTimestep::step(0.1))
                 .with_system(snake_move_system)
-                
+                //.with_system(ungrow_snake_system)
                 
         )
-        .add_system_set(
+        /*.add_system_set(
             SystemSet::new()
                 .with_run_criteria(FixedTimestep::step(0.4))
-                .with_system(ungrow_snake_system)
+                
         )
+        */
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
 }
@@ -90,11 +91,15 @@ fn setup(mut commands: Commands) {
             body: Vec::new()
         });
 
+    for n in 0..=5 {
+
+        spawn_segment(&mut commands, -30.*n as f32, -30.);
+    }
     spawn_food(&mut commands);
 }
 
 
-fn spawn_segment(commands: &mut Commands, mut counter: ResMut<Counter>, x: f32, y: f32) {
+fn spawn_segment(commands: &mut Commands, x: f32, y: f32) {
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform {
@@ -109,8 +114,8 @@ fn spawn_segment(commands: &mut Commands, mut counter: ResMut<Counter>, x: f32, 
             },
             ..Default::default()
         })
-        .insert(BodySegment {num: counter.num} );
-    counter.num += 1;
+        .insert(BodySegment {num: 0} );
+    //counter.num += 1;
 }
 
 #[derive(Component)]
@@ -125,7 +130,7 @@ fn grow_snake_system(mut commands: Commands, mut counter: ResMut<Counter>, mut e
         let x = translation.x - (30. * counter.num as f32);
         let y = translation.y;
 
-        spawn_segment(&mut commands, counter, x, y);
+        spawn_segment(&mut commands, x, y);
         
         println!("grow");
     }
@@ -146,18 +151,7 @@ pub struct Snake {
 }
 
 pub fn ungrow_snake_system(mut commands: Commands, mut counter: ResMut<Counter>, segments: Query<(&BodySegment, With<BodySegment>, Entity)>) {
-    let mut entities = Vec::new();
 
-    for s in segments.iter() {
-        entities.push((s.0, s.2));
-    }
-
-    let ent = entities.iter().last();
-    if let Some(ent) = ent {
-        if ent.0.num >= 7 {
-            commands.entity(ent.1).despawn();
-        }
-    }
     
     /*
     for ent in entities.iter().rev() {
@@ -181,9 +175,29 @@ pub fn snake_move_system(mut commands: Commands, counter: ResMut<Counter>, mut s
     let x = translation.x;
     let y = translation.y;
 
-    spawn_segment(&mut commands, counter, x, y);
+    spawn_segment(&mut commands, x, y);
 
 
+    let count = segments.iter().count();
+    println!("count: {count}");
+ 
+    let ent = segments.iter().last();
+    
+    if let Some(ent) = ent {
+        commands.entity(ent.2).despawn();
+    }
+
+    let ent = segments.iter().nth(0);
+    
+    if let Some(ent) = ent {
+        commands.entity(ent.2).despawn();
+    }
+
+    //let ent = segments.iter().last();
+    
+    //if let Some(ent) = ent {
+     //   commands.entity(ent.2).despawn();
+    //}
 
     /*
     for (idx, ent) in entities.iter().rev().enumerate() {
@@ -193,8 +207,6 @@ pub fn snake_move_system(mut commands: Commands, counter: ResMut<Counter>, mut s
         }
     }
     */
-    println!("a");
-
 }
 
 
