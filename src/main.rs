@@ -74,7 +74,7 @@ fn lost_game_system(mut event: EventReader<LostEvent>, mut commands: Commands, m
     }
 }
 
-fn check_food_system(mut event: EventWriter<GrowSnake>, mut commands: Commands, mut food_query: Query<(With<Food>, Entity, &Transform)>, mut snake_query: Query<(With<Snake>, &Transform)>) {
+fn check_food_system(mut event: EventWriter<GrowSnake>, mut commands: Commands, mut food_query: Query<(With<Food>, Entity, &Transform)>, mut snake_query: Query<(With<Snake>, &Transform)>, segment_query: Query<&Transform, With<BodySegment>>) {
     let (_, ent, food_trans) = food_query.single_mut();
     let (_, snake_trans) = snake_query.single_mut();
 
@@ -83,7 +83,7 @@ fn check_food_system(mut event: EventWriter<GrowSnake>, mut commands: Commands, 
 
     if trans_food.x == trans_snake.x && trans_food.y == trans_snake.y {
         commands.entity(ent).despawn();
-        spawn_food(&mut commands);
+        spawn_food(&mut commands, segment_query);
         event.send(GrowSnake);
     }
 }
@@ -91,7 +91,7 @@ fn check_food_system(mut event: EventWriter<GrowSnake>, mut commands: Commands, 
 #[derive(Component)]
 pub struct Wall;
 
-fn setup(mut commands: Commands, mut counter: ResMut<Counter>) {
+fn setup(mut commands: Commands, mut counter: ResMut<Counter>, segment_query: Query<&Transform, With<BodySegment>>) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
 
@@ -162,10 +162,10 @@ fn setup(mut commands: Commands, mut counter: ResMut<Counter>) {
 
     spawn_segment(&mut commands, &mut counter, -30. as f32 as f32, -30.);
     spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
-    //for n in 0..=3 {
+    //for n in 0..=50 {
     //    spawn_segment(&mut commands, &mut counter, -30. * n as f32 as f32, -30.);
     //}
-    spawn_food(&mut commands);
+    spawn_food(&mut commands, segment_query);
 }
 
 

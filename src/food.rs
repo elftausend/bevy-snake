@@ -1,7 +1,7 @@
-use bevy::{prelude::{Commands, Transform, Color}, sprite::{SpriteBundle, Sprite}, math::Vec3};
+use bevy::{prelude::{Commands, Transform, Color, Query, With}, sprite::{SpriteBundle, Sprite}, math::Vec3};
 use rand::Rng;
 
-use crate::Food;
+use crate::{Food, BodySegment};
 
 pub fn rand_food() -> (i32, i32) {
     let mut thread_rng = rand::thread_rng();
@@ -13,8 +13,24 @@ pub fn rand_food() -> (i32, i32) {
     (x, y)
 }
 
-pub fn spawn_food(commands: &mut Commands) {
-    let (x, y) = rand_food();
+pub fn spawn_food(commands: &mut Commands, segment_query: Query<&Transform, With<BodySegment>>) {
+    let (mut x, mut y) = rand_food();
+    let mut gen = false;
+    loop {
+        for segment in segment_query.iter() {
+            let trans = segment.translation;
+            if trans.x == x as f32 && trans.y == y as f32 {
+                gen = true;
+            }
+        }
+        if !gen {
+            break;
+        } else {
+            (x, y) = rand_food();
+            gen = false;
+        }
+    }
+        
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform {
