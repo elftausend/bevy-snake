@@ -1,3 +1,5 @@
 # bevy-snake
 
-Snake game written in Rust and Bevy
+Snake game written in Rust with Bevy
+
+![Snake image](tmp.png)
