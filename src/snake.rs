@@ -58,11 +58,7 @@ pub fn grow_snake_system(mut commands: Commands, mut counter: ResMut<Counter>, m
         let snake_trans = snake_query.single_mut();
         
         let translation = snake_trans.translation;
-
-        let x = translation.x - (30. * counter.num as f32);
-        let y = translation.y;
-
-        spawn_segment(&mut commands, &mut counter, x, y);
+        spawn_segment(&mut commands, &mut counter, translation.x, translation.y);
         
         println!("grow");
     }
@@ -122,7 +118,8 @@ pub fn snake_move_system(mut commands: Commands, mut event: EventWriter<LostEven
         for segment in segments.iter() {
             let trans_seg = segment.2.translation;
             if trans_seg.x == translation.x && trans_seg.y == translation.y {
-                event.send(LostEvent)
+                event.send(LostEvent);
+                return;
             }
             segments2.push((segment.0, segment.1))
         }

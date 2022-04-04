@@ -59,22 +59,6 @@ fn main() {
         .run();
 }
 
-fn lost_game_system(mut event: EventReader<LostEvent>, mut commands: Commands, mut counter: ResMut<Counter>, segment_query: Query<Entity, With<BodySegment>>, snake_query: Query<Entity, With<Snake>>) {
-    if event.iter().next().is_some() {
-        for entity in segment_query.iter() {
-            commands.entity(entity).despawn();
-        }
-        let snake = snake_query.single();
-        commands.entity(snake).despawn();
-
-        spawn_snake(&mut commands);
-
-        spawn_segment(&mut commands, &mut counter, -30. as f32, -30.);
-        spawn_segment(&mut commands, &mut counter, 0., -30.); 
-
-    }
-}
-
 fn setup(mut commands: Commands, mut counter: ResMut<Counter>, segment_query: Query<&Transform, With<BodySegment>>) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
@@ -116,7 +100,8 @@ fn setup(mut commands: Commands, mut counter: ResMut<Counter>, segment_query: Qu
     );
 
     spawn_snake(&mut commands);
-    spawn_segment(&mut commands, &mut counter, -30. as f32, -30.);
+
+    spawn_segment(&mut commands, &mut counter, 0., -30.);
     spawn_segment(&mut commands, &mut counter, 0., -30.);
     //spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
     //for n in 0..=5 {
@@ -128,3 +113,18 @@ fn setup(mut commands: Commands, mut counter: ResMut<Counter>, segment_query: Qu
 }
 
 
+fn lost_game_system(mut event: EventReader<LostEvent>, mut commands: Commands, mut counter: ResMut<Counter>, segment_query: Query<Entity, With<BodySegment>>, snake_query: Query<Entity, With<Snake>>) {
+    if event.iter().next().is_some() {
+        for entity in segment_query.iter() {
+            commands.entity(entity).despawn();
+        }
+        let snake = snake_query.single();
+        commands.entity(snake).despawn();
+
+        spawn_snake(&mut commands);
+
+        spawn_segment(&mut commands, &mut counter, 0., -30.); 
+        spawn_segment(&mut commands, &mut counter, 0., -30.); 
+
+    }
+}
