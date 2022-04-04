@@ -212,8 +212,6 @@ pub struct BodySegment {
     num: usize,
 }
 
-
-
 #[derive(Component)]
 pub struct Snake {
     x_direction: f32,
@@ -227,52 +225,62 @@ pub fn snake_move_system(mut commands: Commands, mut event: EventWriter<LostEven
 
     let snake_scale = transform.scale.truncate();
 
-    let translation = &mut transform.translation;
-    translation.x += snake.x_direction * 30.;
-    translation.y += snake.y_direction * 30.;
-
-    let x = translation.x;
-    let y = translation.y;
-
-    let mut segments2 = vec![];
+    let mut mv = true;
 
     for wall in wall_query.iter() {
-        let collision = collide(
-            *translation,
-            snake_scale,
-            wall.translation,
-            wall.scale.truncate(),
-        );
-        if let Some(collision) = collision {
+        let mut a_trans = transform.translation.truncate();
+        if snake.x_direction == 1. {
+            a_trans.x += 30.;
+        } 
+        if snake.x_direction == -1. {
+            a_trans.x -= 30.;
+        }
+        if snake.y_direction == 1. {
+            a_trans.y += 30.;
+        } 
+        if snake.y_direction == -1. {
+            a_trans.y -= 30.;
+        }
+        
+        let a_min = (a_trans) - snake_scale / 2.0;
+        let a_max = (a_trans) + snake_scale / 2.0;
+
+        let b_trans = wall.translation.truncate();
+
+        let b_min = b_trans - wall.scale.truncate() / 2.0;
+        let b_max = b_trans + wall.scale.truncate() / 2.0;
+        
+        if a_min.x < b_max.x && a_max.x > b_min.x && a_min.y < b_max.y && a_max.y > b_min.y {
             event.send(LostEvent);
-
-            match collision {
-                bevy::sprite::collide_aabb::Collision::Left => todo!(),
-                bevy::sprite::collide_aabb::Collision::Right => todo!(),
-                bevy::sprite::collide_aabb::Collision::Top => todo!(),
-                bevy::sprite::collide_aabb::Collision::Bottom => todo!(),
+            mv = false;
+        }
+    }
+    if mv {
+        let translation = &mut transform.translation;
+        translation.x += snake.x_direction * 30.;
+        translation.y += snake.y_direction * 30.;
+    
+        let x = translation.x;
+        let y = translation.y;
+    
+        let mut segments2 = vec![];
+    
+    
+        for segment in segments.iter() {
+            let trans_seg = segment.4.translation;
+            if trans_seg.x == translation.x && trans_seg.y == translation.y {
+                event.send(LostEvent)
             }
-            
+            segments2.push((segment.0, segment.2))
         }
+    
+        segments2.sort_by(|a, b| a.0.num.cmp(&b.0.num));
+        let a = segments2[0];
+        commands.entity(a.1).despawn();
+    
+        spawn_segment(&mut commands, &mut counter, x, y);
     }
-
-    for segment in segments.iter() {
-        let trans_seg = segment.4.translation;
-        if trans_seg.x == translation.x && trans_seg.y == translation.y {
-            event.send(LostEvent)
-        }
-        segments2.push((segment.0, segment.2))
-    }
-
-    segments2.sort_by(|a, b| a.0.num.cmp(&b.0.num));
-    let a = segments2[0];
-    commands.entity(a.1).despawn();
-
-    spawn_segment(&mut commands, &mut counter, x, y);
-
-
-
-
+    
     //let seg: Vec<(BodySegment, Entity)> = segments.iter().map(|(b, _, t)| (b, t)).collect();
 
     /*
@@ -322,24 +330,24 @@ pub fn snake_change_direction_system(mut snake_query: Query<(&mut Snake, With<Sn
 */
 
     if snake.y_direction != 0. {
-        if keyboard_input.just_pressed(KeyCode::Left) {
+        if keyboard_input.just_pressed(KeyCode::A) {
             snake.x_direction = -1.;
             snake.y_direction = 0.;
         }
     
-        if keyboard_input.just_pressed(KeyCode::Right) {
+        if keyboard_input.just_pressed(KeyCode::D) {
             snake.x_direction = 1.;
             snake.y_direction = 0.;            
         }
     }
     
     if snake.x_direction != 0. {
-        if keyboard_input.just_pressed(KeyCode::Down) {
+        if keyboard_input.just_pressed(KeyCode::S) {
             snake.y_direction = -1.;
             snake.x_direction = 0.;
         }
     
-        if keyboard_input.just_pressed(KeyCode::Up) {
+        if keyboard_input.just_pressed(KeyCode::W) {
             snake.y_direction = 1.;
             snake.x_direction = 0.;
         }  

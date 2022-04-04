@@ -5,10 +5,10 @@ use crate::Food;
 
 pub fn rand_food() -> (i32, i32) {
     let mut thread_rng = rand::thread_rng();
-    let x = thread_rng.gen_range(-510..=510); //540
+    let x = thread_rng.gen_range(-470..=470); //540
     let x = (x / 30) * 30;
 
-    let y = thread_rng.gen_range(-330..=330); //360
+    let y = thread_rng.gen_range(-320..=320); //360
     let y = (y / 30) * 30;
     (x, y)
 }
