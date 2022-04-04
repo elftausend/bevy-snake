@@ -68,7 +68,7 @@ fn lost_game_system(mut event: EventReader<LostEvent>, mut commands: Commands, m
         spawn_snake(&mut commands);
 
         spawn_segment(&mut commands, &mut counter, -30. as f32 as f32, -30.);
-        spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
+       // spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
         
 
     }
@@ -159,15 +159,13 @@ fn setup(mut commands: Commands, mut counter: ResMut<Counter>, segment_query: Qu
 
 
     spawn_snake(&mut commands);
-
     spawn_segment(&mut commands, &mut counter, -30. as f32 as f32, -30.);
-    spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
-    //for n in 0..=50 {
+    //spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
+    //for n in 0..=5 {
     //    spawn_segment(&mut commands, &mut counter, -30. * n as f32 as f32, -30.);
     //}
     spawn_food(&mut commands, segment_query);
 }
-
 
 fn spawn_segment(commands: &mut Commands, counter: &mut ResMut<Counter>, x: f32, y: f32) {
     commands
@@ -256,16 +254,17 @@ pub fn snake_move_system(mut commands: Commands, mut event: EventWriter<LostEven
         }
     }
     if mv {
+        
         let translation = &mut transform.translation;
         translation.x += snake.x_direction * 30.;
         translation.y += snake.y_direction * 30.;
     
         let x = translation.x;
         let y = translation.y;
-    
+        
+        spawn_segment(&mut commands, &mut counter, x, y);
         let mut segments2 = vec![];
-    
-    
+        
         for segment in segments.iter() {
             let trans_seg = segment.4.translation;
             if trans_seg.x == translation.x && trans_seg.y == translation.y {
@@ -277,8 +276,6 @@ pub fn snake_move_system(mut commands: Commands, mut event: EventWriter<LostEven
         segments2.sort_by(|a, b| a.0.num.cmp(&b.0.num));
         let a = segments2[0];
         commands.entity(a.1).despawn();
-    
-        spawn_segment(&mut commands, &mut counter, x, y);
     }
     
     //let seg: Vec<(BodySegment, Entity)> = segments.iter().map(|(b, _, t)| (b, t)).collect();
@@ -314,8 +311,6 @@ pub fn snake_move_system(mut commands: Commands, mut event: EventWriter<LostEven
     }
     */
 }
-
-
 
 pub fn snake_change_direction_system(mut snake_query: Query<(&mut Snake, With<Snake>, &mut Transform)>, keyboard_input: Res<Input<KeyCode>>) {
     let (mut snake, _, mut transform) = snake_query.single_mut();
