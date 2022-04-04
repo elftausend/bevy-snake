@@ -68,7 +68,7 @@ fn lost_game_system(mut event: EventReader<LostEvent>, mut commands: Commands, m
         spawn_snake(&mut commands);
 
         spawn_segment(&mut commands, &mut counter, -30. as f32 as f32, -30.);
-        spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
+        //spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
         
 
     }
@@ -161,7 +161,7 @@ fn setup(mut commands: Commands, mut counter: ResMut<Counter>, segment_query: Qu
     spawn_snake(&mut commands);
 
     spawn_segment(&mut commands, &mut counter, -30. as f32 as f32, -30.);
-    spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
+    //spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
     //for n in 0..=50 {
     //    spawn_segment(&mut commands, &mut counter, -30. * n as f32 as f32, -30.);
     //}
