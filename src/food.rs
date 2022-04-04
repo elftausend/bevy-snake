@@ -1,7 +1,11 @@
-use bevy::{prelude::{Commands, Transform, Color, Query, With}, sprite::{SpriteBundle, Sprite}, math::Vec3};
+use bevy::{prelude::{Commands, Transform, Color, Query, With, EventWriter, Entity, Component}, sprite::{SpriteBundle, Sprite}, math::Vec3};
 use rand::Rng;
 
-use crate::{Food, BodySegment};
+use crate::{BodySegment, Snake, GrowSnake};
+
+
+#[derive(Component)]
+pub struct Food;
 
 pub fn rand_food() -> (i32, i32) {
     let mut thread_rng = rand::thread_rng();
@@ -46,4 +50,19 @@ pub fn spawn_food(commands: &mut Commands, segment_query: Query<&Transform, With
             ..Default::default()
         })
         .insert(Food);
+}
+
+
+pub fn check_food_system(mut event: EventWriter<GrowSnake>, mut commands: Commands, mut food_query: Query<(Entity, &Transform), With<Food>>, mut snake_query: Query<&Transform, With<Snake>>, segment_query: Query<&Transform, With<BodySegment>>) {
+    let (ent, food_trans) = food_query.single_mut();
+    let snake_trans = snake_query.single_mut();
+
+    let trans_food = &food_trans.translation;
+    let trans_snake = &snake_trans.translation;
+
+    if trans_food.x == trans_snake.x && trans_food.y == trans_snake.y {
+        commands.entity(ent).despawn();
+        spawn_food(&mut commands, segment_query);
+        event.send(GrowSnake);
+    }
 }
