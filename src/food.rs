@@ -5,12 +5,12 @@ use crate::Food;
 
 pub fn rand_food() -> (i32, i32) {
     let mut thread_rng = rand::thread_rng();
-    let x = thread_rng.gen_range(-540..=510); //540
+    let x = thread_rng.gen_range(-510..=510); //540
     let x = (x / 30) * 30;
 
-    let y = thread_rng.gen_range(-360..=330); //360
+    let y = thread_rng.gen_range(-330..=330); //360
     let y = (y / 30) * 30;
-    (x.min(510), y.min(330))
+    (x, y)
 }
 
 pub fn spawn_food(commands: &mut Commands) {

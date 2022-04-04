@@ -1,12 +1,15 @@
 mod food;
+mod snake;
 
-use bevy::{prelude::{App, Commands, OrthographicCameraBundle, UiCameraBundle, SystemSet, Color, Transform, Component, Query, With, KeyCode, Res, Entity, EventWriter, EventReader, ResMut}, DefaultPlugins, core_pipeline::ClearColor, core::FixedTimestep, sprite::{SpriteBundle, Sprite}, math::Vec3, window::WindowDescriptor, input::Input, ecs::system::Command};
+use bevy::{prelude::{App, Commands, OrthographicCameraBundle, UiCameraBundle, SystemSet, Color, Transform, Component, Query, With, KeyCode, Res, Entity, EventWriter, EventReader, ResMut, Without}, DefaultPlugins, core_pipeline::ClearColor, core::FixedTimestep, sprite::{SpriteBundle, Sprite, collide_aabb::collide}, math::{Vec3, Vec2}, window::WindowDescriptor, input::Input, ecs::system::Command};
 use food::spawn_food;
+use snake::spawn_snake;
 
 const TIME_STEP: f32 = 1. / 60.;
 
 pub struct EatFood;
 pub struct GrowSnake;
+pub struct LostEvent;
 
 pub struct Counter {
     num: usize,
@@ -26,6 +29,7 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .insert_resource(Counter { num: 1})
         .add_event::<GrowSnake>()
+        .add_event::<LostEvent>()
         .add_startup_system(setup)
         .add_system(snake_change_direction_system)
         .add_system_set(
@@ -33,6 +37,7 @@ fn main() {
                 .with_run_criteria(FixedTimestep::step(TIME_STEP as f64))
                 .with_system(grow_snake_system)
                 .with_system(check_food_system)
+                .with_system(lost_game_system)
                 
         )
         .add_system_set(
@@ -52,6 +57,23 @@ fn main() {
         .run();
 }
 
+fn lost_game_system(mut event: EventReader<LostEvent>, mut commands: Commands, mut counter: ResMut<Counter>, segment_query: Query<Entity, With<BodySegment>>, snake_query: Query<Entity, With<Snake>>) {
+    if event.iter().next().is_some() {
+        for entity in segment_query.iter() {
+            commands.entity(entity).despawn();
+        }
+        let snake = snake_query.single();
+        commands.entity(snake).despawn();
+
+        spawn_snake(&mut commands);
+
+        spawn_segment(&mut commands, &mut counter, -30. as f32 as f32, -30.);
+        spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
+        
+
+    }
+}
+
 fn check_food_system(mut event: EventWriter<GrowSnake>, mut commands: Commands, mut food_query: Query<(With<Food>, Entity, &Transform)>, mut snake_query: Query<(With<Snake>, &Transform)>) {
     let (_, ent, food_trans) = food_query.single_mut();
     let (_, snake_trans) = snake_query.single_mut();
@@ -66,40 +88,88 @@ fn check_food_system(mut event: EventWriter<GrowSnake>, mut commands: Commands, 
     }
 }
 
+#[derive(Component)]
+pub struct Wall;
 
-
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, mut counter: ResMut<Counter>) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
+
+    let wall_color = Color::rgb(0.8, 0., 0.8);
+    let wall_thickness = 10.0;
+    let bounds = Vec2::new(940.0, 640.0);
 
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform {
-                scale: Vec3::new(30.0, 30.0, 0.0),
-                translation: Vec3::new(0., -30., 1.0),
+                translation: Vec3::new(-bounds.x / 2.0, 0.0, 0.0),
+                scale: Vec3::new(wall_thickness, bounds.y + wall_thickness, 1.0),
                 ..Default::default()
             },
             sprite: Sprite {
-                color: Color::rgb(1.0, 1., 1.),
+                color: wall_color,
                 ..Default::default()
             },
             ..Default::default()
-        })
-        .insert(Snake {
-            x_direction: 1.,
-            y_direction: 0.,
-            body: Vec::new()
-        });
+        }).insert(Wall);
+    // right
+    commands
+        .spawn_bundle(SpriteBundle {
+            transform: Transform {
+                translation: Vec3::new(bounds.x / 2.0, 0.0, 0.0),
+                scale: Vec3::new(wall_thickness, bounds.y + wall_thickness, 1.0),
+                ..Default::default()
+            },
+            sprite: Sprite {
+                color: wall_color,
+                ..Default::default()
+            },
+            ..Default::default()
+        }).insert(Wall);
+    // bottom
+    commands
+        .spawn_bundle(SpriteBundle {
+            transform: Transform {
+                translation: Vec3::new(0.0, -bounds.y / 2.0, 0.0),
+                scale: Vec3::new(bounds.x + wall_thickness, wall_thickness, 1.0),
+                ..Default::default()
+            },
+            sprite: Sprite {
+                color: wall_color,
+                ..Default::default()
+            },
+            ..Default::default()
+        }).insert(Wall);
+    // top
+    commands
+        .spawn_bundle(SpriteBundle {
+            transform: Transform {
+                translation: Vec3::new(0.0, bounds.y / 2.0, 0.0),
+                scale: Vec3::new(bounds.x + wall_thickness, wall_thickness, 1.0),
+                ..Default::default()
+            },
+            sprite: Sprite {
+                color: wall_color,
+                ..Default::default()
+            },
+            ..Default::default()
+        }).insert(Wall);
 
-    for n in 0..=5 {
 
-        spawn_segment(&mut commands, -30.*n as f32, -30.);
-    }
+
+
+    spawn_snake(&mut commands);
+
+    spawn_segment(&mut commands, &mut counter, -30. as f32 as f32, -30.);
+    spawn_segment(&mut commands, &mut counter, -30. as f32*2. as f32, -30.);
+    //for n in 0..=3 {
+    //    spawn_segment(&mut commands, &mut counter, -30. * n as f32 as f32, -30.);
+    //}
     spawn_food(&mut commands);
 }
 
 
-fn spawn_segment(commands: &mut Commands, x: f32, y: f32) {
+fn spawn_segment(commands: &mut Commands, counter: &mut ResMut<Counter>, x: f32, y: f32) {
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform {
@@ -114,23 +184,24 @@ fn spawn_segment(commands: &mut Commands, x: f32, y: f32) {
             },
             ..Default::default()
         })
-        .insert(BodySegment {num: 0} );
-    //counter.num += 1;
+        .insert(BodySegment {num: counter.num } );
+    counter.num += 1;
+    
 }
 
 #[derive(Component)]
 pub struct Food;
 
-fn grow_snake_system(mut commands: Commands, mut counter: ResMut<Counter>, mut event: EventReader<GrowSnake>, mut snake_query: Query<(&mut Snake, With<Snake>, &mut Transform)>) {
+fn grow_snake_system(mut commands: Commands, mut counter: ResMut<Counter>, mut event: EventReader<GrowSnake>, mut snake_query: Query<(With<Snake>, &mut Transform)>) {
     if let Some(_) = event.iter().next() {
-        let (mut snake, _, mut snake_trans) = snake_query.single_mut();
+        let (_, mut snake_trans) = snake_query.single_mut();
         
         let translation = &mut snake_trans.translation;
 
         let x = translation.x - (30. * counter.num as f32);
         let y = translation.y;
 
-        spawn_segment(&mut commands, x, y);
+        spawn_segment(&mut commands, &mut counter, x, y);
         
         println!("grow");
     }
@@ -150,23 +221,11 @@ pub struct Snake {
     body: Vec<BodySegment>,
 }
 
-pub fn ungrow_snake_system(mut commands: Commands, mut counter: ResMut<Counter>, segments: Query<(&BodySegment, With<BodySegment>, Entity)>) {
 
-    
-    /*
-    for ent in entities.iter().rev() {
-        println!("count {}, ent: {}", counter.num, ent.0.num);
-        if ent.0.num > counter.num-4 {
-        
-            commands.entity(ent.1).despawn();
-            counter.num -= 1;
-        }
-    }
-    */
-}
-
-pub fn snake_move_system(mut commands: Commands, counter: ResMut<Counter>, mut snake_query: Query<(&Snake, With<Snake>, &mut Transform)>, segments: Query<(&BodySegment, With<BodySegment>, Entity)>) {
+pub fn snake_move_system(mut commands: Commands, mut event: EventWriter<LostEvent>, mut counter: ResMut<Counter>, mut snake_query: Query<(&Snake, With<Snake>, &mut Transform)>, segments: Query<(&BodySegment, With<BodySegment>, Entity, Without<Snake>, &Transform)>, wall_query: Query<&Transform, (Without<BodySegment>, Without<Snake>, With<Wall>)>) {
     let (snake, _, mut transform) = snake_query.single_mut();
+
+    let snake_scale = transform.scale.truncate();
 
     let translation = &mut transform.translation;
     translation.x += snake.x_direction * 30.;
@@ -175,9 +234,48 @@ pub fn snake_move_system(mut commands: Commands, counter: ResMut<Counter>, mut s
     let x = translation.x;
     let y = translation.y;
 
-    spawn_segment(&mut commands, x, y);
+    let mut segments2 = vec![];
+
+    for wall in wall_query.iter() {
+        let collision = collide(
+            *translation,
+            snake_scale,
+            wall.translation,
+            wall.scale.truncate(),
+        );
+        if let Some(collision) = collision {
+            event.send(LostEvent);
+
+            match collision {
+                bevy::sprite::collide_aabb::Collision::Left => todo!(),
+                bevy::sprite::collide_aabb::Collision::Right => todo!(),
+                bevy::sprite::collide_aabb::Collision::Top => todo!(),
+                bevy::sprite::collide_aabb::Collision::Bottom => todo!(),
+            }
+            
+        }
+    }
+
+    for segment in segments.iter() {
+        let trans_seg = segment.4.translation;
+        if trans_seg.x == translation.x && trans_seg.y == translation.y {
+            event.send(LostEvent)
+        }
+        segments2.push((segment.0, segment.2))
+    }
+
+    segments2.sort_by(|a, b| a.0.num.cmp(&b.0.num));
+    let a = segments2[0];
+    commands.entity(a.1).despawn();
+
+    spawn_segment(&mut commands, &mut counter, x, y);
 
 
+
+
+    //let seg: Vec<(BodySegment, Entity)> = segments.iter().map(|(b, _, t)| (b, t)).collect();
+
+    /*
     let count = segments.iter().count();
     println!("count: {count}");
  
@@ -192,7 +290,7 @@ pub fn snake_move_system(mut commands: Commands, counter: ResMut<Counter>, mut s
     if let Some(ent) = ent {
         commands.entity(ent.2).despawn();
     }
-
+    */
     //let ent = segments.iter().last();
     
     //if let Some(ent) = ent {
@@ -223,23 +321,28 @@ pub fn snake_change_direction_system(mut snake_query: Query<(&mut Snake, With<Sn
     }    
 */
 
-    if keyboard_input.just_pressed(KeyCode::Left) {
-        snake.x_direction = -1.;
-        snake.y_direction = 0.;
+    if snake.y_direction != 0. {
+        if keyboard_input.just_pressed(KeyCode::Left) {
+            snake.x_direction = -1.;
+            snake.y_direction = 0.;
+        }
+    
+        if keyboard_input.just_pressed(KeyCode::Right) {
+            snake.x_direction = 1.;
+            snake.y_direction = 0.;            
+        }
+    }
+    
+    if snake.x_direction != 0. {
+        if keyboard_input.just_pressed(KeyCode::Down) {
+            snake.y_direction = -1.;
+            snake.x_direction = 0.;
+        }
+    
+        if keyboard_input.just_pressed(KeyCode::Up) {
+            snake.y_direction = 1.;
+            snake.x_direction = 0.;
+        }  
     }
 
-    if keyboard_input.just_pressed(KeyCode::Right) {
-        snake.x_direction = 1.;
-        snake.y_direction = 0.;
-    }
-
-    if keyboard_input.just_pressed(KeyCode::Down) {
-        snake.y_direction = -1.;
-        snake.x_direction = 0.;
-    }
-
-    if keyboard_input.just_pressed(KeyCode::Up) {
-        snake.y_direction = 1.;
-        snake.x_direction = 0.;
-    }  
 }
