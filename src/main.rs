@@ -27,7 +27,7 @@ fn main() {
             resizable: true,
             ..Default::default()
         })
-        .add_plugins(DefaultPlugins)
+        .add_plugins (DefaultPlugins)
         .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .insert_resource(Counter { num: 1})
         .add_event::<GrowSnake>()
